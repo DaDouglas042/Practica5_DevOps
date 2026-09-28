@@ -1,9 +1,16 @@
 {
-	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "crimson-grass-4362",
-	"main": "src/index.ts",
-	"compatibility_date": "2025-02-01",
-	"observability": {
-		"enabled": true
-	}
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "crimson-grass-4362",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-02-01",
+  "observability": {
+    "enabled": true
+  },
+  "d1_databases": [
+    {
+      "binding": "p6",
+      "database_name": "p6",
+      "database_id": "d63a2941-26bd-42bd-a803-8da91357cd78"
+    }
+  ]
 }

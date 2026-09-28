@@ -1,45 +1,97 @@
-/**
- * Practica 5 - Infraestructura para el Desarrollo Continuo
- * Cloudflare Worker con despliegue continuo (CI/CD) via GitHub Actions
- * Modificado con Inteligencia Artificial (Pasos 10 y 11)
- */
+type D1Database = any;
+type ExecutionContext = any;
+
+export interface Env {
+  p6: D1Database;
+}
 
 export default {
-	async fetch(request, env, ctx): Promise<Response> {
-		const url = new URL(request.url);
+  async fetch(request: any, env: Env, ctx?: ExecutionContext): Promise<any> {
+    const url = new (globalThis as any).URL(request.url);
 
-		if (url.pathname === "/api/status") {
-			const statusData = {
-				status: "ok",
-				timestamp: new Date().toISOString(),
-				student: "Francisco de Jesús Delgado Carrasco",
-				course: "Infraestructura para el desarrollo continuo",
-				practice: "Práctica 5 - Integrate a Cloudflare App",
-				pipeline: "GitHub Actions (CI/CD)",
-				worker: "crimson-grass-4362",
-				modifiedByAI: true,
-			};
-			return new Response(JSON.stringify(statusData, null, 2), {
-				headers: {
-					"Content-Type": "application/json; charset=UTF-8",
-					"Access-Control-Allow-Origin": "*",
-				},
-			});
-		}
+    let dbResults: any[] = [];
+    let dbError: string | null = null;
 
-		const html = `<!DOCTYPE html>
+    try {
+      const { results } = await env.p6.prepare("SELECT * FROM users;").all();
+      dbResults = results || [];
+    } catch (err: any) {
+      dbError = err.message || "Error al consultar la base de datos";
+    }
+
+    if (url.pathname === "/api/db") {
+      return new (globalThis as any).Response(
+        JSON.stringify(
+          {
+            status: dbError ? "error" : "success",
+            database: "p6",
+            count: dbResults.length,
+            data: dbResults,
+            error: dbError,
+          },
+          null,
+          2
+        ),
+        {
+          headers: {
+            "Content-Type": "application/json; charset=UTF-8",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
+      );
+    }
+
+    if (url.pathname === "/api/status") {
+      const statusData = {
+        status: "ok",
+        timestamp: new Date().toISOString(),
+        student: "Francisco de Jesús Delgado Carrasco",
+        course: "Infraestructura para el desarrollo continuo",
+        practice: "Práctica 6 - Include database",
+        databaseBinding: "p6",
+        recordsCount: dbResults.length,
+      };
+      return new (globalThis as any).Response(
+        JSON.stringify(statusData, null, 2),
+        {
+          headers: {
+            "Content-Type": "application/json; charset=UTF-8",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
+      );
+    }
+
+    let tableRows = "";
+    if (dbError) {
+      tableRows = `<tr><td colspan="3" style="color: #ef4444; padding: 12px; text-align: center;">Error al leer D1: ${dbError}</td></tr>`;
+    } else if (dbResults.length === 0) {
+      tableRows = `<tr><td colspan="3" style="color: var(--text-muted); padding: 12px; text-align: center;">No hay registros en la tabla 'users'</td></tr>`;
+    } else {
+      tableRows = dbResults
+        .map(
+          (row: any) => `
+          <tr>
+            <td style="padding: 8px 12px; border-bottom: 1px solid var(--border-card);">${row.id ?? "-"}</td>
+            <td style="padding: 8px 12px; border-bottom: 1px solid var(--border-card);">${row.name ?? "-"}</td>
+            <td style="padding: 8px 12px; border-bottom: 1px solid var(--border-card);">${row.email ?? "-"}</td>
+          </tr>`
+        )
+        .join("");
+    }
+
+    const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Práctica 5 - Cloudflare & GitHub Actions | ITESO</title>
+  <title>Práctica 6 - Cloudflare D1 Database | ITESO</title>
   <style>
     :root {
       --bg-primary: #0b0f19;
       --bg-card: #111827;
       --border-card: #1f2937;
       --accent-cf: #f38020;
-      --accent-gh: #238636;
       --text-main: #f9fafb;
       --text-muted: #9ca3af;
     }
@@ -72,17 +124,17 @@ export default {
       border-radius: 9999px;
       font-size: 0.825rem;
       font-weight: 600;
-      background: rgba(35, 134, 54, 0.15);
-      color: #3fb950;
-      border: 1px solid rgba(56, 139, 253, 0.2);
+      background: rgba(243, 128, 32, 0.15);
+      color: #f97316;
+      border: 1px solid rgba(243, 128, 32, 0.3);
       margin-bottom: 1.5rem;
     }
     .badge-dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: #3fb950;
-      box-shadow: 0 0 10px #3fb950;
+      background: #f97316;
+      box-shadow: 0 0 10px #f97316;
     }
     h1 {
       font-size: 1.85rem;
@@ -124,26 +176,33 @@ export default {
       color: var(--text-main);
       word-break: break-all;
     }
-    .ai-banner {
-      background: linear-gradient(135deg, rgba(243, 128, 32, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%);
-      border: 1px solid rgba(243, 128, 32, 0.3);
+    .db-section {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border-card);
       border-radius: 12px;
       padding: 1.25rem;
       margin-top: 1.5rem;
     }
-    .ai-title {
-      font-size: 0.95rem;
+    .db-title {
+      font-size: 1rem;
       font-weight: 700;
-      color: #fb923c;
-      margin-bottom: 0.35rem;
+      color: #38bdf8;
+      margin-bottom: 0.75rem;
       display: flex;
       align-items: center;
       gap: 0.5rem;
     }
-    .ai-desc {
-      font-size: 0.85rem;
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+      text-align: left;
+    }
+    th {
+      padding: 8px 12px;
       color: var(--text-muted);
-      line-height: 1.5;
+      border-bottom: 1px solid var(--border-card);
+      font-weight: 600;
     }
     footer {
       margin-top: 2rem;
@@ -155,7 +214,7 @@ export default {
       font-size: 0.8rem;
       color: var(--text-muted);
     }
-    a { color: #58a6ff; text-decoration: none; }
+    a { color: #38bdf8; text-decoration: none; }
     a:hover { text-decoration: underline; }
   </style>
 </head>
@@ -163,9 +222,9 @@ export default {
   <div class="container">
     <div class="badge">
       <span class="badge-dot"></span>
-      CI/CD Pipeline Activo &bull; Despliegue Exitoso
+      Cloudflare D1 Database Conectada
     </div>
-    <h1>Práctica 5 - Integración de Cloudflare</h1>
+    <h1>Práctica 6 - Base de Datos SQLite D1</h1>
     <p class="subtitle">Infraestructura para el Desarrollo Continuo &bull; ITESO</p>
 
     <div class="grid">
@@ -174,38 +233,39 @@ export default {
         <div class="card-value">Francisco de Jesús Delgado Carrasco</div>
       </div>
       <div class="card">
-        <div class="card-label">Cloudflare Worker</div>
-        <div class="card-value">crimson-grass-4362</div>
-      </div>
-      <div class="card">
-        <div class="card-label">Pipeline de CI/CD</div>
-        <div class="card-value">GitHub Actions (Deploy Worker)</div>
-      </div>
-      <div class="card">
-        <div class="card-label">Repositorio</div>
-        <div class="card-value"><a href="https://github.com/DaDouglas042/Practica5_DevOps" target="_blank">DaDouglas042/Practica5_DevOps</a></div>
+        <div class="card-label">Base de Datos Binding</div>
+        <div class="card-value">p6 (Cloudflare D1)</div>
       </div>
     </div>
 
-    <div class="ai-banner">
-      <div class="ai-title">⚡ Modificación con IA completada (Paso 10 y 11)</div>
-      <div class="ai-desc">
-        Este proyecto fue modificado exitosamente mediante Inteligencia Artificial. Al realizar el merge a la rama principal (main), el pipeline de GitHub Actions se dispara automáticamente, ejecuta los tests unitarios con Vitest y despliega la nueva versión en la red Edge de Cloudflare sin intervención manual.
-      </div>
+    <div class="db-section">
+      <div class="db-title">🗄️ Registros leídos desde la BD (D1)</div>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Email</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRows}
+        </tbody>
+      </table>
     </div>
 
     <footer>
-      <span>Endpoint API: <a href="/api/status">/api/status</a></span>
-      <span>Cloudflare Workers + GitHub Actions</span>
+      <span>Endpoints: <a href="/api/db">/api/db</a> &bull; <a href="/api/status">/api/status</a></span>
+      <span>Cloudflare Workers + D1</span>
     </footer>
   </div>
 </body>
 </html>`;
 
-		return new Response(html, {
-			headers: {
-				"Content-Type": "text/html; charset=UTF-8",
-			},
-		});
-	},
-} satisfies ExportedHandler<Env>;
+    return new (globalThis as any).Response(html, {
+      headers: {
+        "Content-Type": "text/html; charset=UTF-8",
+      },
+    });
+  },
+};
